@@ -16,9 +16,19 @@ export OPENAI_API_KEY=...            # required (description generation)
 
 python fetch_projects.py             # full run: fetch, describe new repos, rewrite CSV + README
 python fetch_projects.py 20          # limit to first 20 fetched repos (cheap test run)
+
+# SaaS pipeline (see docs/superpowers/): generate playbooks into Cloudflare KV
+export CLOUDFLARE_API_TOKEN=...      # KV edit token
+export CLOUDFLARE_ACCOUNT_ID=...     # Cloudflare account id
+export CF_KV_NAMESPACE_ID=...        # PLAYBOOKS namespace id
+.venv/bin/python generate_playbooks.py --max 2   # cheap test: 2 playbooks to KV + previews.json
+.venv/bin/python generate_playbooks.py           # full run; --force owner/name regenerates one
+.venv/bin/pytest -q                              # pipeline unit tests
 ```
 
-There are no tests and no linter. `.env`, `.venv/`, `venv/` are gitignored.
+`.env`, `.venv/`, `venv/`, `playbooks/` are gitignored. Full playbook bodies live only in
+Cloudflare KV (never committed — public repo); only `site/src/data/previews.json` is committed.
+Design + plans live under `docs/superpowers/`.
 
 ## Architecture
 

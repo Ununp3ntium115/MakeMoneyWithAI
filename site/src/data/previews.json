@@ -1,0 +1,26 @@
+[
+ {
+  "slug": "obra__superpowers",
+  "summary": "obra/superpowers is an agentic skills framework and software development methodology designed to enable efficient, scalable AI agent creation that accelerates product development and drives revenue growth. The monetization thesis revolves around leveraging its advanced AI tooling to serve enterprises and developers seeking to build intelligent automation and AI-driven workflows faster and more effectively.",
+  "who_its_for": "This project targets AI developers, product teams, and enterprises aiming to implement scalable AI agents for automation and innovation, as well as consultants and startups wanting to accelerate AI integration into products.",
+  "first_business_model": {
+   "name": "Enterprise Licensing & Support",
+   "description": "Offer paid licenses or subscriptions for enterprise use with premium support, SLAs, and customization services.",
+   "difficulty": "medium",
+   "startup_cost": "$500-2000/mo",
+   "revenue_potential": "full-business"
+  }
+ },
+ {
+  "slug": "re4__LibreCode",
+  "summary": "LibreCode is an open-source cursor-driven coding and reversing interface designed to streamline software analysis and debugging. The monetization thesis revolves around offering premium productivity enhancements and security auditing services to professional developers and enterprises seeking more efficient software inspection and vulnerability detection.",
+  "who_its_for": "This project targets software developers, security researchers, and IT auditors who require powerful tools for reverse engineering and debugging complex software efficiently.",
+  "first_business_model": {
+   "name": "Freemium Productivity Plugins",
+   "description": "Offer advanced, paid plugins or extensions that enhance the base LibreCode interface with features like automation, collaboration tools, and AI-assisted analysis.",
+   "difficulty": "medium",
+   "startup_cost": "$50-200/mo",
+   "revenue_potential": "side-income"
+  }
+ }
+]
