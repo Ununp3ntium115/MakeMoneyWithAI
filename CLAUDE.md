@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A curated list generator: `fetch_projects.py` searches GitHub for popular AI repos (topics `ai`, `ai-agent`, `llm`; ≥10k stars; pushed within the last year), asks OpenAI (`gpt-5-mini`) to write a one-sentence monetization-focused description for each *new* repo, and regenerates `README.md` — the product of this repo — plus `repos.csv`.
+A curated list generator: `fetch_projects.py` searches GitHub for popular AI repos (topics `ai`, `ai-agent`, `llm`; ≥10k stars; pushed within the last year), asks OpenAI (default `gpt-5-mini`, overridable via the `OPENAI_MODEL` env var — empty counts as unset; CI supplies it from the `vars.OPENAI_MODEL` repo variable) to write a one-sentence monetization-focused description for each *new* repo, and regenerates `README.md` — the product of this repo — plus `repos.csv`.
 
 ## Commands
 
