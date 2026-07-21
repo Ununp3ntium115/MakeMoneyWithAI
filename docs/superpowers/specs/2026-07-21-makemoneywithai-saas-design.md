@@ -17,6 +17,7 @@ Decisions made during brainstorming:
 | Paywall | Freemium previews — previews public/indexable, full content subscription-only |
 | Stack | Mostly static + Stripe: Astro on Cloudflare Pages, Pages Functions, KV |
 | Architecture | "Stripe-as-database": no user store; Stripe is the source of truth for who has access |
+| Marketing (added after initial approval) | Auto-post new repos to the owner's Threads account as part of the daily pipeline (v1) |
 
 ## Repo layout
 
@@ -26,6 +27,8 @@ All code lives in the existing fork `Ununp3ntium115/MakeMoneyWithAI` (diverges f
 MakeMoneyWithAI/
 ├── fetch_projects.py          # existing pipeline — unchanged role
 ├── generate_playbooks.py      # NEW: LLM → structured playbook JSON per repo
+├── post_to_threads.py         # NEW: daily step — announce new repos on Threads
+├── threads_auth.py            # NEW: one-time local OAuth helper (token → KV)
 ├── playbooks/                 # NEW: local working dir, GITIGNORED (see below)
 ├── site/                      # NEW: Astro project
 │   ├── src/data/previews.json # committed: public preview content for all repos
@@ -43,6 +46,14 @@ MakeMoneyWithAI/
 3. CI uploads each playbook's **full body** to Cloudflare KV (`wrangler kv bulk put`), keyed by slug.
 4. Astro build bakes **previews only** into static HTML, plus `index.json` for client-side search/filter.
 5. Deploy to Cloudflare Pages (site + functions in one artifact, served at `*.pages.dev`; custom domain can be attached later without changes).
+6. `post_to_threads.py` (new): for each repo added this run (max 3/day), publish a Threads post — name, stars, blurb, link to the repo's playbook page. No new repos → no posts.
+
+## Threads auto-posting
+
+- **Setup (one-time, local)**: `threads_auth.py` walks through the Threads Authorization Window flow with the Meta app's `THREADS_APP_ID`/`THREADS_APP_SECRET` (scopes `threads_basic,threads_content_publish`), exchanges the code for a short-lived token (`POST graph.threads.net/oauth/access_token`), immediately upgrades it to a long-lived 60-day token (`GET /access_token?grant_type=th_exchange_token` — server-side only, requires the app secret), and writes it plus its expiry timestamp to Cloudflare KV under `threads:token`.
+- **Daily use**: `post_to_threads.py` reads the token from KV; if it expires within 7 days, calls `GET /refresh_access_token?grant_type=th_refresh_token` (valid only for tokens ≥24h old and unexpired — the 7-day policy always satisfies this) and writes the refreshed token + new expiry back to KV. Posting uses the two-step Threads publish API (create container → publish).
+- **Failure policy**: any Threads error (auth, rate limit, API) logs and exits 0 — posting never blocks the data refresh or site deploy. If the token has fully expired, the log says to re-run `threads_auth.py`.
+- **Secrets**: `THREADS_APP_ID`/`THREADS_APP_SECRET` are needed only by the local one-time setup, not CI. CI needs no new secrets (KV access already exists via `CLOUDFLARE_API_TOKEN`).
 
 ## Playbook content model
 
@@ -95,6 +106,7 @@ Extend `.github/workflows/fetch-ai-projects.yml`:
 refresh data (existing) → generate playbooks → commit data changes
 (README.md, repos.csv, site/src/data/previews.json)
 → wrangler KV bulk upload → astro build → cloudflare/pages-action deploy
+→ post new repos to Threads (never fails the run)
 ```
 
 - New CI secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. Existing: `OPENAI_API_KEY`; existing repo var: `OPENAI_MODEL`.
@@ -113,7 +125,8 @@ refresh data (existing) → generate playbooks → commit data changes
 - **Pipeline**: schema validation is the gate; a unit test runs `generate_playbooks.py` against a fixture repo with a mocked OpenAI response.
 - **Site**: the Astro build over real data is the smoke test; CI fails on build failure.
 - **Payments**: one manual end-to-end run in Stripe test mode (test card → cookie → gated content) before switching to live keys.
+- **Threads**: unit tests with the API mocked (post formatting, 3/day cap, token refresh path); one manual live post to verify the token.
 
 ## Explicitly out of scope (v1)
 
-Newsletter, personalized feeds, alerts/trend engine, metered free tier, admin UI, community features, affiliate tracking, custom domain, Stripe webhooks. All are additive later; the only stateful seam is the gate function, so none require rework of v1.
+Newsletter, personalized feeds, alerts/trend engine, metered free tier, admin UI, community features, affiliate tracking, custom domain, Stripe webhooks, and social channels beyond Threads. All are additive later; the only stateful seam is the gate function, so none require rework of v1.
