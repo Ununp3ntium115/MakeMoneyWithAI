@@ -72,3 +72,32 @@ def test_generate_playbook_http_error(monkeypatch):
     )
     with pytest.raises(gp.PlaybookError):
         gp.generate_playbook(REPO)
+
+
+def test_call_openai_rejects_non_object_body(monkeypatch):
+    # A JSON array is valid JSON but not a playbook object.
+    monkeypatch.setattr(
+        gp.requests, "post",
+        lambda *a, **kw: FakeResponse(200, openai_chat_payload([1, 2, 3])),
+    )
+    with pytest.raises(gp.PlaybookError):
+        gp.call_openai("prompt")
+
+
+def test_call_openai_wraps_network_error(monkeypatch):
+    def boom(*a, **kw):
+        raise gp.requests.RequestException("connection reset")
+
+    monkeypatch.setattr(gp.requests, "post", boom)
+    with pytest.raises(gp.PlaybookError):
+        gp.call_openai("prompt")
+
+
+def test_call_openai_rejects_malformed_envelope(monkeypatch):
+    # 200 OK but no choices/message/content structure.
+    monkeypatch.setattr(
+        gp.requests, "post",
+        lambda *a, **kw: FakeResponse(200, {"unexpected": "shape"}),
+    )
+    with pytest.raises(gp.PlaybookError):
+        gp.call_openai("prompt")

@@ -103,14 +103,27 @@ def call_openai(prompt):
         "messages": [{"role": "user", "content": prompt}],
         "response_format": {"type": "json_object"},
     }
-    response = requests.post(OPENAI_API_URL, headers=headers, json=payload)
+    try:
+        response = requests.post(OPENAI_API_URL, headers=headers, json=payload, timeout=60)
+    except requests.RequestException as e:
+        raise PlaybookError(f"OpenAI request failed: {e}")
     if response.status_code != 200:
         raise PlaybookError(f"OpenAI API error {response.status_code}: {response.text[:200]}")
-    content = response.json()["choices"][0]["message"]["content"]
     try:
-        return json.loads(content)
-    except json.JSONDecodeError as e:
+        data = response.json()
+    except ValueError as e:  # includes requests/json JSONDecodeError
+        raise PlaybookError(f"OpenAI returned a non-JSON response: {e}")
+    try:
+        content = data["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, TypeError) as e:
+        raise PlaybookError(f"OpenAI response missing choices/message/content: {e}")
+    try:
+        parsed = json.loads(content)
+    except (json.JSONDecodeError, TypeError) as e:
         raise PlaybookError(f"OpenAI returned non-JSON content: {e}")
+    if not isinstance(parsed, dict):
+        raise PlaybookError("OpenAI returned a non-object JSON body")
+    return parsed
 
 
 def generate_playbook(repo):
@@ -183,8 +196,10 @@ def extract_preview(playbook):
     }
 
 
-def update_previews(new_previews, path=PREVIEWS_FILE):
+def update_previews(new_previews, path=None):
     """Merge previews into the committed previews file, keyed by slug."""
+    if path is None:
+        path = PREVIEWS_FILE
     existing = {}
     if os.path.exists(path):
         with open(path, encoding="utf-8") as fh:
@@ -195,3 +210,58 @@ def update_previews(new_previews, path=PREVIEWS_FILE):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(merged, fh, ensure_ascii=False, indent=1)
+
+
+import argparse
+import csv
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Generate playbooks into KV + previews.json")
+    parser.add_argument("--max", type=int, default=None, help="limit number of new playbooks")
+    parser.add_argument("--force", action="append", default=[],
+                        help="owner/name to regenerate even if present in KV (repeatable)")
+    args = parser.parse_args(argv)
+    forced = {f.replace("/", "__") for f in args.force}
+
+    with open(CSV_FILE, newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+
+    try:
+        existing = kv_list_keys()
+    except PlaybookError as e:
+        print(f"ABORT: {e}")
+        return 1
+
+    todo = [r for r in rows
+            if slug_for(r["owner"], r["name"]) not in existing
+            or slug_for(r["owner"], r["name"]) in forced]
+    if args.max is not None:
+        todo = todo[: args.max]
+    print(f"{len(rows)} repos, {len(existing)} in KV, {len(todo)} to generate")
+
+    os.makedirs(PLAYBOOKS_DIR, exist_ok=True)
+    items, previews, failed = [], [], 0
+    for repo in todo:
+        slug = slug_for(repo["owner"], repo["name"])
+        try:
+            playbook = generate_playbook(repo)
+        except PlaybookError as e:
+            print(f"  SKIP {slug}: {e}")
+            failed += 1
+            continue
+        body = json.dumps(playbook, ensure_ascii=False)
+        with open(os.path.join(PLAYBOOKS_DIR, f"{slug}.json"), "w", encoding="utf-8") as fh:
+            fh.write(body)
+        items.append({"key": slug, "value": body})
+        previews.append(extract_preview(playbook))
+        print(f"  OK   {slug}")
+
+    kv_bulk_put(items)
+    update_previews(previews)
+    print(f"Done: {len(items)} written to KV, {failed} skipped")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
