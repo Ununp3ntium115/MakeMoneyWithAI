@@ -2,6 +2,7 @@ name: Fetch AI Projects
 
 on:
   push:
+  workflow_dispatch:
   schedule:
     - cron: "0 0 * * *" # Runs daily at midnight UTC
 
@@ -28,6 +29,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
 
         run: python fetch_projects.py
 
