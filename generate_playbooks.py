@@ -172,3 +172,26 @@ def kv_bulk_put(items):
     response = requests.put(f"{_kv_base()}/bulk", headers=_kv_headers(), json=items)
     if response.status_code != 200 or not response.json().get("success"):
         raise PlaybookError(f"KV bulk put failed: {response.status_code} {response.text[:200]}")
+
+
+def extract_preview(playbook):
+    return {
+        "slug": playbook["slug"],
+        "summary": playbook["summary"],
+        "who_its_for": playbook["who_its_for"],
+        "first_business_model": playbook["business_models"][0],
+    }
+
+
+def update_previews(new_previews, path=PREVIEWS_FILE):
+    """Merge previews into the committed previews file, keyed by slug."""
+    existing = {}
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as fh:
+            existing = {p["slug"]: p for p in json.load(fh)}
+    for preview in new_previews:
+        existing[preview["slug"]] = preview
+    merged = [existing[slug] for slug in sorted(existing)]
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(merged, fh, ensure_ascii=False, indent=1)
