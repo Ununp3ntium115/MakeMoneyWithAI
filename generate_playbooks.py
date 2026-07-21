@@ -131,3 +131,44 @@ def generate_playbook(repo):
             return body
         last_errors = errors
     raise PlaybookError(f"{slug_for(repo['owner'], repo['name'])}: {last_errors}")
+
+
+def _kv_base():
+    account = os.getenv("CLOUDFLARE_ACCOUNT_ID")
+    namespace = os.getenv("CF_KV_NAMESPACE_ID")
+    if not account or not namespace:
+        raise PlaybookError("CLOUDFLARE_ACCOUNT_ID / CF_KV_NAMESPACE_ID not set")
+    return f"{CF_API}/accounts/{account}/storage/kv/namespaces/{namespace}"
+
+
+def _kv_headers():
+    token = os.getenv("CLOUDFLARE_API_TOKEN")
+    if not token:
+        raise PlaybookError("CLOUDFLARE_API_TOKEN not set")
+    return {"Authorization": f"Bearer {token}"}
+
+
+def kv_list_keys():
+    """All key names in the namespace. Raises PlaybookError on any failure."""
+    keys, cursor = set(), None
+    while True:
+        params = {"limit": 1000}
+        if cursor:
+            params["cursor"] = cursor
+        response = requests.get(f"{_kv_base()}/keys", headers=_kv_headers(), params=params)
+        if response.status_code != 200 or not response.json().get("success"):
+            raise PlaybookError(f"KV key listing failed: {response.status_code} {response.text[:200]}")
+        data = response.json()
+        keys.update(k["name"] for k in data["result"])
+        cursor = (data.get("result_info") or {}).get("cursor") or None
+        if not cursor:
+            return keys
+
+
+def kv_bulk_put(items):
+    """Write [{'key':..., 'value':...}] pairs. Raises PlaybookError on failure."""
+    if not items:
+        return
+    response = requests.put(f"{_kv_base()}/bulk", headers=_kv_headers(), json=items)
+    if response.status_code != 200 or not response.json().get("success"):
+        raise PlaybookError(f"KV bulk put failed: {response.status_code} {response.text[:200]}")
