@@ -16,6 +16,7 @@ CSV_FILE = "repos.csv"  # CSV file to store repository data
 
 # OpenAI API configuration
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-mini")
 OPENAI_HEADERS = {
     "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
     "Content-Type": "application/json"
@@ -149,7 +150,7 @@ Note:
 """
 
     payload = {
-        "model": "gpt-5-mini",
+        "model": OPENAI_MODEL,
         "messages": [
             {
                 "role": "system",
