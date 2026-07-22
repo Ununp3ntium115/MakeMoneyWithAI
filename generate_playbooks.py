@@ -265,3 +265,23 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+def kv_get(key):
+    """Return the string value at key, or None if it does not exist."""
+    response = requests.get(f"{_kv_base()}/values/{key}", headers=_kv_headers())
+    if response.status_code == 404:
+        return None
+    if response.status_code != 200:
+        raise PlaybookError(f"KV get {key} failed: {response.status_code}")
+    return response.text
+
+
+def kv_put(key, value):
+    """Write a single string value at key. Raises PlaybookError on failure."""
+    response = requests.put(
+        f"{_kv_base()}/values/{key}", headers=_kv_headers(),
+        data=value.encode("utf-8"),
+    )
+    if response.status_code != 200 or not response.json().get("success"):
+        raise PlaybookError(f"KV put {key} failed: {response.status_code}")
