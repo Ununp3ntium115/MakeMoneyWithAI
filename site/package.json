@@ -1,0 +1,13 @@
+{
+  "name": "makemoneywithai-site",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "test": "vitest run"
+  },
+  "dependencies": { "astro": "^5.13.0" },
+  "devDependencies": { "vitest": "^2.1.0" },
+  "pnpm": { "onlyBuiltDependencies": ["esbuild"] }
+}

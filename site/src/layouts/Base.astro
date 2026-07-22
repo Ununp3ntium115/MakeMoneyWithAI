@@ -1,0 +1,20 @@
+---
+const { title } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a href="/" class="brand">Make Money With AI</a>
+      <nav><a href="/projects">Projects</a> <a href="/pricing">Pricing</a> <a href="/account">Account</a></nav>
+    </header>
+    <main><slot /></main>
+    <footer class="site-footer">Curated open-source AI projects with money-making playbooks.</footer>
+  </body>
+</html>
