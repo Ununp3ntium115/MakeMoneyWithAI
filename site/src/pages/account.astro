@@ -1,0 +1,26 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Account — Make Money With AI">
+  <h1>Account</h1>
+  <p id="status">Checking…</p>
+  <div id="login">
+    <p>Already subscribed on another device? Enter your email for a login link.</p>
+    <input id="email" type="email" placeholder="you@example.com" />
+    <button id="send">Send login link</button>
+    <p id="msg"></p>
+  </div>
+  <script is:inline>
+    (async () => {
+      const s = await fetch('/api/session').then((r) => r.json()).catch(() => ({ subscribed: false }));
+      document.getElementById('status').textContent = s.subscribed
+        ? "You're signed in and subscribed. Enjoy the full playbooks."
+        : "You're not signed in.";
+    })();
+    document.getElementById('send').addEventListener('click', async () => {
+      const email = document.getElementById('email').value;
+      await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+      document.getElementById('msg').textContent = 'If that email has an active subscription, a login link is on its way.';
+    });
+  </script>
+</Base>

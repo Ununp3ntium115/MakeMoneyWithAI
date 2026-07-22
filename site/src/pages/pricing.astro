@@ -1,0 +1,18 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Pricing — Make Money With AI">
+  <h1>Pricing</h1>
+  <p>Unlock every full playbook. Cancel anytime.</p>
+  <p><button data-plan="monthly">Subscribe monthly</button> <button data-plan="yearly">Subscribe yearly (save)</button></p>
+  <p id="msg"></p>
+  <script is:inline>
+    document.querySelectorAll('button[data-plan]').forEach((b) => b.addEventListener('click', async () => {
+      document.getElementById('msg').textContent = 'Redirecting to checkout…';
+      const res = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan: b.dataset.plan }) });
+      if (!res.ok) { document.getElementById('msg').textContent = 'Checkout is temporarily unavailable.'; return; }
+      const { url } = await res.json();
+      window.location = url;
+    }));
+  </script>
+</Base>

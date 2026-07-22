@@ -1,0 +1,22 @@
+---
+import Base from '../../layouts/Base.astro';
+import previews from '../../data/previews.json';
+export function getStaticPaths() {
+  return previews.map((p) => ({ params: { slug: p.slug }, props: { preview: p } }));
+}
+const { preview } = Astro.props;
+const bm = preview.first_business_model;
+---
+<Base title={`${preview.slug.replace('__', '/')} — Make Money With AI`}>
+  <h1>{preview.slug.replace('__', '/')}</h1>
+  <p>{preview.summary}</p>
+  <p><strong>Who it's for:</strong> {preview.who_its_for}</p>
+  <h2>Business model: {bm.name}</h2>
+  <p>{bm.description}</p>
+  <p><em>Difficulty {bm.difficulty} · {bm.startup_cost} · {bm.revenue_potential}</em></p>
+  <hr />
+  <section id="full-playbook" data-slug={preview.slug}>
+    <p><a href="/pricing">Subscribe</a> to unlock the full playbook — every business model, step-by-step setup, cost estimate, and risks.</p>
+  </section>
+  <script src="/scripts/unlock.js" is:inline></script>
+</Base>

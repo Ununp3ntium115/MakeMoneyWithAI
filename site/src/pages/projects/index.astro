@@ -1,0 +1,17 @@
+---
+import Base from '../../layouts/Base.astro';
+import previews from '../../data/previews.json';
+const sorted = [...previews].sort((a, b) => a.slug.localeCompare(b.slug));
+---
+<Base title="Projects — Make Money With AI">
+  <h1>Projects</h1>
+  <p>{previews.length} AI projects with money-making playbooks.</p>
+  <ul>
+    {sorted.map((p) => (
+      <li>
+        <a href={`/projects/${p.slug}`}>{p.slug.replace('__', '/')}</a>
+        <div>{p.summary}</div>
+      </li>
+    ))}
+  </ul>
+</Base>
